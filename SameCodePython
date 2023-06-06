@@ -1,0 +1,84 @@
+from __future__ import annotations  # Importa la anotación de tipo para permitir referencias de tipo a sí mismo en el código
+
+from abc import ABC, abstractmethod  # Importa la clase ABC y el decorador abstractmethod del módulo abc
+
+from typing import Any, Optional, List  # Importa los tipos Any, Optional y List del módulo typing
+
+
+class Handler(ABC):  # Define la clase abstracta Handler que hereda de ABC
+    @abstractmethod  # Decorador que marca el método como abstracto
+    def set_next(self, handler: Handler) -> Handler:  # Firma del método set_next
+        pass  # Implementación vacía del método
+
+    @abstractmethod  # Decorador que marca el método como abstracto
+    def handle(self, request) -> Optional[str]:  # Firma del método handle
+        pass  # Implementación vacía del método
+
+
+class AbstractHandler(Handler):  # Define la clase AbstractHandler que hereda de Handler
+    _next_handler: Handler = None  # Atributo para almacenar el siguiente handler en la cadena
+
+    def set_next(self, handler: Handler) -> Handler:  # Implementación del método set_next
+        self._next_handler = handler  # Establece el siguiente handler
+        return handler  # Devuelve el handler para encadenar llamadas
+
+    @abstractmethod  # Decorador que marca el método como abstracto
+    def handle(self, request: Any) -> str:  # Firma del método handle
+        if self._next_handler:  # Si hay un siguiente handler en la cadena
+            return self._next_handler.handle(request)  # Llama al método handle del siguiente handler
+        return None  # Si no hay siguiente handler, devuelve None
+
+
+class EmailHandler(AbstractHandler):  # Define la clase EmailHandler que hereda de AbstractHandler
+    def handle(self, request: Any) -> str:  # Implementación del método handle para EmailHandler
+        if request == "email":  # Si la solicitud es "email"
+            return "EmailHandler: Sending email"  # Devuelve el mensaje de envío de email
+        else:
+            return super().handle(request)  # Si no es "email", pasa la solicitud al siguiente handler
+
+
+class CallHandler(AbstractHandler):  # Define la clase CallHandler que hereda de AbstractHandler
+    def handle(self, request: Any) -> str:  # Implementación del método handle para CallHandler
+        if request == "call":  # Si la solicitud es "call"
+            return "CallHandler: Making a call"  # Devuelve el mensaje de realización de llamada
+        else:
+            return super().handle(request)  # Si no es "call", pasa la solicitud al siguiente handler
+
+
+class SMSHandler(AbstractHandler):  # Define la clase SMSHandler que hereda de AbstractHandler
+    def handle(self, request: Any) -> str:  # Implementación del método handle para SMSHandler
+        if request == "sms":  # Si la solicitud es "sms"
+            return "SMSHandler: Sending SMS"  # Devuelve el mensaje de envío de SMS
+        else:
+            return super().handle(request)  # Si no es "sms", pasa la solicitud al siguiente handler
+
+
+def client_code(handler: Handler) -> None:  # Define la función client_code que recibe un objeto Handler
+    while True:  # Bucle infinito
+        requests = input("Enter multiple requests (email, call, sms) separated by commas or 'q' to quit: ")  
+        # Solicita al usuario ingresar múltiples solicitudes separadas por comas o 'q' para salir
+        if requests == "q":  # Si el usuario ingresa 'q'
+            break  # Sale del bucle
+        requests_list = [request.strip() for request in requests.split(",")]  
+        # Divide las solicitudes ingresadas por comas y elimina los espacios en blanco alrededor de cada solicitud
+        results = []  # Lista para almacenar los resultados de las solicitudes
+        for request in requests_list:  # Para cada solicitud en la lista de solicitudes
+            result = handler.handle(request)  # Llama al método handle del handler actual
+            if result:  # Si se obtiene un resultado válido
+                results.append(result)  # Agrega el resultado a la lista de resultados
+        if results:  # Si hay resultados
+            print("\n".join(results))  # Imprime los resultados separados por saltos de línea
+        else:
+            print("No handlers found for the requests.")  # Imprime un mensaje si no se encontraron handlers para las solicitudes
+
+
+if __name__ == "__main__":  # Bloque de ejecución principal
+    email_handler = EmailHandler()  # Crea una instancia de EmailHandler
+    call_handler = CallHandler()  # Crea una instancia de CallHandler
+    sms_handler = SMSHandler()  # Crea una instancia de SMSHandler
+
+    email_handler.set_next(call_handler).set_next(sms_handler)  
+    # Establece el orden de los handlers: Email > Call > SMS
+
+    print("Chain: Email > Call > SMS")  # Imprime el mensaje de la cadena de responsabilidad
+    client_code(email_handler)  # Llama a la función client_code pasando el email_handler como inicio de la cadena
